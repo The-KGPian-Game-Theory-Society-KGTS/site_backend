@@ -30,6 +30,8 @@ const userSchema = new mongoose.Schema({
         }
     ]
 
+    //Subject to Additions
+
 }, {timestamps:true});
 
 export const User = mongoose.model("User",userSchema);

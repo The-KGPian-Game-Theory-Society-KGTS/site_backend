@@ -1,35 +1,38 @@
 import mongoose, { VirtualType } from "mongoose";
 
 const eventSchema = new mongoose.Schema({
-    username : {
-        type: String,
-        required: true,
-        unique: true
-    },
-    email : {
+    title : {
         type: String,
         required: true,
         unique: true,
-        lowercase: true,
-        trim:true,
-        match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address']
     },
-    fullName: {
+    description : {
         type: String,
-        required: true,
-        trim:true,
     },
-    password: {
-        type: String,
-        required: [true,'Password is Required'],
+    time : {
+        type : String,
+        required : true
     },
-    registeredEvents: [
+    registration: {
+        type: Boolean,
+        default: false
+    },
+    registeredUsers: [
         {
-            type: Schema.Types.ObjectId,
-            ref: "Event"
+            type : Schema.Types.ObjectId,
+            ref : "User"
         }
-    ]
-
+    ],
+    status : {
+        type: String,
+        enums: ["Past", "Ongoing", "Upcoming"],
+        required: true,
+        default: "Past"
+    },
+    image:{
+        type:String,
+        required:true
+    }
     //Subject to Additions
 
 }, {timestamps:true});
