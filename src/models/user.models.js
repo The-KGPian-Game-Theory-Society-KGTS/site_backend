@@ -28,10 +28,15 @@ const userSchema = new mongoose.Schema({
             type: Schema.Types.ObjectId,
             ref: "Event"
         }
-    ]
+    ],
+    isAdmin: {
+        type: Boolean,
+        default: false,
+    }
 
     //Subject to Additions
 
 }, {timestamps:true});
+
 
 export const User = mongoose.model("User",userSchema);
