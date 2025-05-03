@@ -1,10 +1,10 @@
 import express from "express";
 import DBConnect from "./db/index.js"
 import dotenv from 'dotenv';
+import {app} from './app.js'
 
-dotenv.config({ path: './env'})
+dotenv.config({ path: './.env'})
 const port = process.env.PORT || 8000;
-const app = express();
 
 DBConnect()
 .then(() => {
