@@ -4,11 +4,6 @@ import jwt from "jsonwebtoken";
 
 
 const userSchema = new mongoose.Schema({
-    username : {
-        type: String,
-        required: true,
-        unique: true
-    },
     email : {
         type: String,
         required: true,
@@ -38,6 +33,21 @@ const userSchema = new mongoose.Schema({
     },
     refreshToken: {
         type: String
+    },
+    phoneNumber: {
+        type: String,
+        match: [/^[0-9]{10}$/,"Please enter a valid Phone number"]
+    },
+    collegeName: {
+        type: String,
+    },
+    rollNumber: {
+        type: String,
+        match: [/^2\d[A-Z]{2}[A-Z0-9]{5}$/,"Please enter a valid IIT Kgp Roll Number"]
+    },
+    kgpMail: {
+        type:String,
+        match: [/^[a-zA-Z0-9._%+-]+@kgpian\.iitkgp\.ac\.in$/,"Please enter a valid IIT Kgp institute email ID"]
     }
 
     //Subject to Additions
