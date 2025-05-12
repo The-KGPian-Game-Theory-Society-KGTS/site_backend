@@ -1,13 +1,15 @@
 import mongoose from "mongoose";
 
-const DBConnect = async () =>{
+const DBConnect = async () => {
     try {
-        const connectionInstance = await mongoose.connect(`${process.env.MONGODB_URI}/${process.env.DB_NAME}`);
-        console.log(`\n MongoDB connected succesfully \n${connectionInstance.connection.host}`)
+        // Using the MONGODB_URI directly without appending DB_NAME
+        // as the database name should already be part of the URI
+        const connectionInstance = await mongoose.connect(process.env.MONGODB_URI);
+        console.log(`\n MongoDB connected successfully \n${connectionInstance.connection.host}`);
     } catch (error) {
-        console.log("MongoDB connection error ",error);
+        console.log("MongoDB connection error ", error);
         process.exit(1);
     }
-}
+};
 
 export default DBConnect;

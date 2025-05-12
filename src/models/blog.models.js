@@ -1,36 +1,44 @@
-import mongoose, { VirtualType } from "mongoose";
+import mongoose from "mongoose";
 
 const blogSchema = new mongoose.Schema({
-    title : {
+    title: {
         type: String,
         required: true,
         unique: true,
     },
-    author : {
+    author: {
         type: String,
     },
-    image:{
+    image: {
         type: String,
         required: true
     },
-    date : {
-        type : String,
-        required : true
+    date: {
+        type: String,
+        required: true
     },
     words: {
         type: Number,
     },
-    content : {
+    excerpt: {
         type: String,
         required: true,
     },
-    link:{
+    content: {
+        type: String,
+        required: true,
+    },
+    category: {
+        type: String,
+        required: true,
+    },
+    externalLink: {
         type: String,
         required: true,
         unique: true
     }
     //Subject to Additions
 
-}, {timestamps:true});
+}, { timestamps: true });
 
-export const Blog = mongoose.model("Blog",blogSchema);
+export const Blog = mongoose.model("Blog", blogSchema);

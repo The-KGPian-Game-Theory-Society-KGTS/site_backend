@@ -1,29 +1,28 @@
-import mongoose, { VirtualType } from "mongoose";
+import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-
 const userSchema = new mongoose.Schema({
-    email : {
+    email: {
         type: String,
         required: true,
         unique: true,
         lowercase: true,
-        trim:true,
+        trim: true,
         match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address']
     },
     fullName: {
         type: String,
         required: true,
-        trim:true,
+        trim: true,
     },
     password: {
         type: String,
-        required: [true,'Password is Required'],
+        required: [true, 'Password is Required'],
     },
     registeredEvents: [
         {
-            type: Schema.Types.ObjectId,
+            type: mongoose.Schema.Types.ObjectId,
             ref: "Event"
         }
     ],
@@ -31,66 +30,70 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
-    refreshToken: {
-        type: String
-    },
     phoneNumber: {
         type: String,
-        match: [/^[0-9]{10}$/,"Please enter a valid Phone number"]
+        match: [/^[0-9]{10}$/, "Please enter a valid Phone number"]
     },
     collegeName: {
         type: String,
     },
     rollNumber: {
         type: String,
-        match: [/^2\d[A-Z]{2}[A-Z0-9]{5}$/,"Please enter a valid IIT Kgp Roll Number"]
+        match: [/^2\d[A-Z]{2}[A-Z0-9]{5}$/, "Please enter a valid IIT Kgp Roll Number"]
     },
     kgpMail: {
-        type:String,
-        match: [/^[a-zA-Z0-9._%+-]+@kgpian\.iitkgp\.ac\.in$/,"Please enter a valid IIT Kgp institute email ID"]
+        type: String,
+        match: [/^[a-zA-Z0-9._%+-]+@kgpian\.iitkgp\.ac\.in$/, "Please enter a valid IIT Kgp institute email ID"]
+    },
+    refreshToken: {
+        type: String
+    },
+    emailVerified: {
+        type: Boolean,
+        default: false
     }
+}, { timestamps: true });
 
-    //Subject to Additions
-
-}, {timestamps:true});
-
-
-userSchema.pre("save" , async function(next) {
-
-    if(this.isModified("password"))
-    {
-        this.password = await bcrypt.hash(this.password)
+// Hash password before saving
+userSchema.pre("save", async function(next) {
+    if (this.isModified("password")) {
+        this.password = await bcrypt.hash(this.password, 10);
     }
-    next()
-})
+    next();
+});
 
+// Method to check if password is correct
+userSchema.methods.isPasswordCorrect = async function(password) {
+    return await bcrypt.compare(password, this.password);
+};
 
-userSchema.methods.isPasswordCorrect = async function(password){
-    return await bcrypt.compare(password,this.password)
-}
+// Method to generate access token
+userSchema.methods.generateAccessToken = function() {
+    return jwt.sign(
+        {
+            _id: this._id,
+            email: this.email,
+            fullName: this.fullName,
+            isAdmin: this.isAdmin
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        {
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
+        }
+    );
+};
 
+// Method to generate refresh token
+userSchema.methods.generateRefreshToken = function() {
+    return jwt.sign(
+        {
+            _id: this._id
+        },
+        process.env.REFRESH_TOKEN_SECRET,
+        {
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+        }
+    );
+};
 
-userSchema.methods.generateAccessToken = async function(){
-    return await jwt.sign({
-        _id: this._id,
-        email: this.email,
-        username: this.username,
-        fullName: this.fullName
-    }, process.env.ACCESS_TOKEN_SECRET,
-    {
-        expiresIn: process.env.ACCESS_TOKEN_EXPIRY
-    })
-}
-
-
-userSchema.methods.generateRefreshToken = async function(){
-    return await jwt.sign({
-        _id: this._id
-    }, process.env.REFRESH_TOKEN_SECRET,
-    {
-        expiresIn: process.env.REFRESH_TOKEN_EXPIRY
-    })
-}
-
-
-export const User = mongoose.model("User",userSchema);
+export const User = mongoose.model("User", userSchema);

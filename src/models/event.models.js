@@ -1,4 +1,4 @@
-import mongoose, { VirtualType } from "mongoose";
+import mongoose from "mongoose";
 
 const eventSchema = new mongoose.Schema({
     title : {
@@ -9,7 +9,15 @@ const eventSchema = new mongoose.Schema({
     description : {
         type: String,
     },
+    date : {
+        type : String,
+        required : true
+    },
     time : {
+        type : String,
+        required : true
+    },
+    location : {
         type : String,
         required : true
     },
@@ -19,15 +27,15 @@ const eventSchema = new mongoose.Schema({
     },
     registeredUsers: [
         {
-            type : Schema.Types.ObjectId,
-            ref : "User"
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
         }
     ],
     status : {
         type: String,
-        enums: ["Past", "Ongoing", "Upcoming"],
+        enum: ["Past", "Ongoing", "Upcoming"],
         required: true,
-        default: "Past"
+        default: "Upcoming"
     },
     image:{
         type:String,
