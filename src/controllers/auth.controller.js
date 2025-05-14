@@ -28,7 +28,7 @@ const generateTokens = async (user) => {
 /**
  * Register a new user
  */
-export const registerUser = asyncHandler(async (req, res) => {
+const registerUser = asyncHandler(async (req, res) => {
     // Get user details from request
     const { email, fullName, password, phoneNumber, collegeName, rollNumber, kgpMail } = req.body;
     
@@ -80,7 +80,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 /**
  * Verify email with OTP
  */
-export const verifyEmail = asyncHandler(async (req, res) => {
+const verifyEmail = asyncHandler(async (req, res) => {
     // Debug request information
     console.log("VERIFY EMAIL REQUEST:");
     console.log("Headers:", JSON.stringify(req.headers));
@@ -183,7 +183,7 @@ export const verifyEmail = asyncHandler(async (req, res) => {
 /**
  * Resend verification OTP
  */
-export const resendOTP = asyncHandler(async (req, res) => {
+const resendOTP = asyncHandler(async (req, res) => {
     const { email } = req.body;
     
     if (!email) {
@@ -228,7 +228,7 @@ export const resendOTP = asyncHandler(async (req, res) => {
 /**
  * Login with email and password
  */
-export const loginUser = asyncHandler(async (req, res) => {
+const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     
     if (!email || !password) {
@@ -290,7 +290,7 @@ export const loginUser = asyncHandler(async (req, res) => {
 /**
  * Logout user
  */
-export const logoutUser = asyncHandler(async (req, res) => {
+const logoutUser = asyncHandler(async (req, res) => {
     // Clear refresh token in database
     await User.findByIdAndUpdate(
         req.user._id,
@@ -315,4 +315,13 @@ export const logoutUser = asyncHandler(async (req, res) => {
                 "Logged out successfully"
             )
         );
-}); 
+});
+
+// Default export
+export default {
+    registerUser,
+    verifyEmail,
+    resendOTP,
+    loginUser,
+    logoutUser
+};

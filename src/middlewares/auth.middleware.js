@@ -6,7 +6,7 @@ import { ApiError } from "../utils/ApiError.js";
 /**
  * Verify user is authenticated
  */
-export const verifyJWT = asyncHandler(async (req, res, next) => {
+const verifyJWT = asyncHandler(async (req, res, next) => {
     try {
         // Get token from cookies or authorization header
         const token = req.cookies?.accessToken || 
@@ -47,7 +47,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
 /**
  * Verify user has admin role
  */
-export const isAdmin = asyncHandler(async (req, res, next) => {
+const isAdmin = asyncHandler(async (req, res, next) => {
     if (!req.user?.isAdmin) {
         throw new ApiError(403, "Admin access required");
     }
@@ -57,7 +57,7 @@ export const isAdmin = asyncHandler(async (req, res, next) => {
 /**
  * Refresh access token using refresh token
  */
-export const refreshAccessToken = asyncHandler(async (req, res) => {
+const refreshAccessToken = asyncHandler(async (req, res) => {
     try {
         // Get refresh token from cookies or request body
         const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken;
@@ -115,4 +115,18 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
             throw new ApiError(401, error?.message || "Invalid refresh token");
         }
     }
-}); 
+});
+
+// Default export for all middleware functions
+export default {
+    verifyJWT,
+    isAdmin,
+    refreshAccessToken
+};
+
+// Also export individually for backward compatibility
+export {
+    verifyJWT,
+    isAdmin,
+    refreshAccessToken
+};

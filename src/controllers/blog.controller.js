@@ -6,7 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 /**
  * Create a new blog (Admin only)
  */
-export const createBlog = asyncHandler(async (req, res) => {
+const createBlog = asyncHandler(async (req, res) => {
     const { title, author, image, date, words, excerpt, content, category, externalLink } = req.body;
     
     // Validate required fields
@@ -51,7 +51,7 @@ export const createBlog = asyncHandler(async (req, res) => {
 /**
  * Update an existing blog (Admin only)
  */
-export const updateBlog = asyncHandler(async (req, res) => {
+const updateBlog = asyncHandler(async (req, res) => {
     const blogId = req.params.id;
     const { title, author, image, date, words, excerpt, content, category, externalLink } = req.body;
     
@@ -117,7 +117,7 @@ export const updateBlog = asyncHandler(async (req, res) => {
 /**
  * Delete a blog (Admin only)
  */
-export const deleteBlog = asyncHandler(async (req, res) => {
+const deleteBlog = asyncHandler(async (req, res) => {
     const blogId = req.params.id;
     
     // Validate blog ID
@@ -144,7 +144,7 @@ export const deleteBlog = asyncHandler(async (req, res) => {
 /**
  * Get all blogs with optional category filter
  */
-export const getAllBlogs = asyncHandler(async (req, res) => {
+const getAllBlogs = asyncHandler(async (req, res) => {
     const { category } = req.query;
     
     // Build query
@@ -170,7 +170,7 @@ export const getAllBlogs = asyncHandler(async (req, res) => {
 /**
  * Get a single blog by ID
  */
-export const getBlogById = asyncHandler(async (req, res) => {
+const getBlogById = asyncHandler(async (req, res) => {
     const blogId = req.params.id;
     
     // Validate blog ID
@@ -197,7 +197,7 @@ export const getBlogById = asyncHandler(async (req, res) => {
 /**
  * Get a single blog by external link
  */
-export const getBlogByExternalLink = asyncHandler(async (req, res) => {
+const getBlogByExternalLink = asyncHandler(async (req, res) => {
     const { link } = req.params;
     
     // Validate link
@@ -219,4 +219,14 @@ export const getBlogByExternalLink = asyncHandler(async (req, res) => {
             "Blog fetched successfully"
         )
     );
-}); 
+});
+
+// Default export for all functions
+export default {
+    createBlog,
+    updateBlog,
+    deleteBlog,
+    getAllBlogs,
+    getBlogById,
+    getBlogByExternalLink
+};

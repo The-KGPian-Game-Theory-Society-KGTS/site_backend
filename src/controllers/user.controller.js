@@ -6,7 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 /**
  * Get user profile
  */
-export const getUserProfile = asyncHandler(async (req, res) => {
+const getUserProfile = asyncHandler(async (req, res) => {
     const userId = req.user._id;
     
     const user = await User.findById(userId).select("-password -refreshToken");
@@ -28,7 +28,7 @@ export const getUserProfile = asyncHandler(async (req, res) => {
  * Update user profile
  * Note: Email, fullName, and password cannot be updated
  */
-export const updateUserProfile = asyncHandler(async (req, res) => {
+const updateUserProfile = asyncHandler(async (req, res) => {
     const userId = req.user._id;
     const { phoneNumber, collegeName, rollNumber, kgpMail } = req.body;
     
@@ -62,4 +62,10 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
             "User profile updated successfully"
         )
     );
-}); 
+});
+
+// Default export for all functions
+export default {
+    getUserProfile,
+    updateUserProfile
+};

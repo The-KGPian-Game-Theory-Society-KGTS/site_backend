@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 /**
  * Create a new event (Admin only)
  */
-export const createEvent = asyncHandler(async (req, res) => {
+const createEvent = asyncHandler(async (req, res) => {
     const { title, description, date, time, location, registration, status, image } = req.body;
     
     // Validate required fields
@@ -46,7 +46,7 @@ export const createEvent = asyncHandler(async (req, res) => {
 /**
  * Update an existing event (Admin only)
  */
-export const updateEvent = asyncHandler(async (req, res) => {
+const updateEvent = asyncHandler(async (req, res) => {
     const eventId = req.params.id;
     const { title, description, date, time, location, registration, status, image } = req.body;
     
@@ -97,7 +97,7 @@ export const updateEvent = asyncHandler(async (req, res) => {
 /**
  * Delete an event (Admin only)
  */
-export const deleteEvent = asyncHandler(async (req, res) => {
+const deleteEvent = asyncHandler(async (req, res) => {
     const eventId = req.params.id;
     
     // Validate event ID
@@ -124,7 +124,7 @@ export const deleteEvent = asyncHandler(async (req, res) => {
 /**
  * Get all events with optional filters
  */
-export const getAllEvents = asyncHandler(async (req, res) => {
+const getAllEvents = asyncHandler(async (req, res) => {
     const { status } = req.query;
     
     // Build query
@@ -148,7 +148,7 @@ export const getAllEvents = asyncHandler(async (req, res) => {
 /**
  * Get a single event by ID
  */
-export const getEventById = asyncHandler(async (req, res) => {
+const getEventById = asyncHandler(async (req, res) => {
     const eventId = req.params.id;
     
     // Validate event ID
@@ -175,7 +175,7 @@ export const getEventById = asyncHandler(async (req, res) => {
 /**
  * Register for an event (Authentication required)
  */
-export const registerForEvent = asyncHandler(async (req, res) => {
+const registerForEvent = asyncHandler(async (req, res) => {
     const eventId = req.params.id;
     const userId = req.user._id;
     
@@ -246,7 +246,7 @@ export const registerForEvent = asyncHandler(async (req, res) => {
 /**
  * Get user's registered events (Authentication required)
  */
-export const getUserRegisteredEvents = asyncHandler(async (req, res) => {
+const getUserRegisteredEvents = asyncHandler(async (req, res) => {
     const userId = req.user._id;
     
     // Get user with populated events
@@ -263,4 +263,15 @@ export const getUserRegisteredEvents = asyncHandler(async (req, res) => {
             "User registered events fetched successfully"
         )
     );
-}); 
+});
+
+// Default export for all functions
+export default {
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    getAllEvents,
+    getEventById,
+    registerForEvent,
+    getUserRegisteredEvents
+};

@@ -78,4 +78,7 @@ app.use("*", (req, res) => {
 // Global error handler
 app.use(errorHandler);
 
+// Export app as default
+export default app;
+// Also maintain named export for backward compatibility
 export { app };

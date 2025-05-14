@@ -1,13 +1,6 @@
 import { Router } from "express";
-import { 
-    createBlog, 
-    updateBlog, 
-    deleteBlog, 
-    getAllBlogs, 
-    getBlogById,
-    getBlogByExternalLink
-} from "../controllers/blog.controller.js";
-import { verifyJWT, isAdmin } from "../middlewares/auth.middleware.js";
+import blogController from "../controllers/blog.controller.js";
+import authMiddleware from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
@@ -17,21 +10,21 @@ const router = Router();
  * @description Get all blogs with optional category filter
  * @access Public
  */
-router.get("/", getAllBlogs);
+router.get("/", blogController.getAllBlogs);
 
 /**
  * @route GET /api/blogs/link/:link
  * @description Get a single blog by external link
  * @access Public
  */
-router.get("/link/:link", getBlogByExternalLink);
+router.get("/link/:link", blogController.getBlogByExternalLink);
 
 /**
  * @route GET /api/blogs/:id
  * @description Get a single blog by ID
  * @access Public
  */
-router.get("/:id", getBlogById);
+router.get("/:id", blogController.getBlogById);
 
 // Admin routes
 /**
@@ -39,20 +32,20 @@ router.get("/:id", getBlogById);
  * @description Create a new blog
  * @access Admin
  */
-router.post("/", verifyJWT, isAdmin, createBlog);
+router.post("/", authMiddleware.verifyJWT, authMiddleware.isAdmin, blogController.createBlog);
 
 /**
  * @route PUT /api/blogs/:id
  * @description Update a blog
  * @access Admin
  */
-router.put("/:id", verifyJWT, isAdmin, updateBlog);
+router.put("/:id", authMiddleware.verifyJWT, authMiddleware.isAdmin, blogController.updateBlog);
 
 /**
  * @route DELETE /api/blogs/:id
  * @description Delete a blog
  * @access Admin
  */
-router.delete("/:id", verifyJWT, isAdmin, deleteBlog);
+router.delete("/:id", authMiddleware.verifyJWT, authMiddleware.isAdmin, blogController.deleteBlog);
 
 export default router; 
