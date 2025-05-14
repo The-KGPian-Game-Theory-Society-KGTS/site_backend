@@ -19,6 +19,13 @@ app.use(cors({
 
 // Body parsing middleware that handles JSON in different content types
 app.use((req, res, next) => {
+    // Skip if content-type is explicitly set as application/json
+    // Let express.json() handle it instead
+    if (req.headers['content-type'] && 
+        req.headers['content-type'].includes('application/json')) {
+        return next();
+    }
+    
     let data = '';
     
     req.on('data', chunk => {
@@ -29,8 +36,8 @@ app.use((req, res, next) => {
         if (data) {
             req.rawBody = data;
             
-            // Try to parse as JSON if it looks like JSON (starts with { or [)
-            if (data.startsWith('{') || data.startsWith('[')) {
+            // Only parse if not already parsed by express.json
+            if (!req.body && (data.startsWith('{') || data.startsWith('['))) {
                 try {
                     req.body = JSON.parse(data);
                     console.log("Parsed JSON successfully:", req.body);

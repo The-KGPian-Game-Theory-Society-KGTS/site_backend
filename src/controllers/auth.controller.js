@@ -30,21 +30,26 @@ const generateTokens = async (user) => {
  */
 const registerUser = asyncHandler(async (req, res) => {
     // Get user details from request
-    const { email, fullName, password, phoneNumber, collegeName, rollNumber, kgpMail } = req.body;
+    const { userName, email, fullName, password, phoneNumber, collegeName, rollNumber, kgpMail } = req.body;
     
     // Validate required fields
-    if (!email || !fullName || !password) {
-        throw new ApiError(400, "Email, fullName, and password are required");
+    if (!userName || !email || !fullName || !password) {
+        throw new ApiError(400, "Username, Email, fullName, and password are required");
     }
     
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    const existingUserByEmail = await User.findOne({ email });
+    if (existingUserByEmail) {
         throw new ApiError(409, "User with this email already exists");
+    }
+    const existingUserByUsername = await User.findOne({ userName });
+    if (existingUserByUsername) {
+        throw new ApiError(409, "User with this username already exists");
     }
     
     // Create a new user
     const user = await User.create({
+        userName,
         email,
         fullName,
         password,
@@ -229,18 +234,25 @@ const resendOTP = asyncHandler(async (req, res) => {
  * Login with email and password
  */
 const loginUser = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const { userName, email, password } = req.body;
     
-    if (!email || !password) {
+    if ((!userName && !email) || !password) {
         throw new ApiError(400, "Email and password are required");
     }
     
     // Find user
-    const user = await User.findOne({ email });
+    const userByEmail = await User.findOne({ email });
     
-    if (!user) {
+    if (!userByEmail) {
         throw new ApiError(404, "User not found");
     }
+
+    const userByUsername = await User.findOne({ userName });
+    if (!userByUsername) {
+        throw new ApiError(404, "User not found");
+    }
+    
+    const user = userByEmail || userByUsername;
     
     // Check if email is verified
     if (!user.emailVerified) {

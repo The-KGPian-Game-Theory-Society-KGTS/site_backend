@@ -11,6 +11,13 @@ const userSchema = new mongoose.Schema({
         trim: true,
         match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address']
     },
+    userName: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true,
+    },
     fullName: {
         type: String,
         required: true,
@@ -73,7 +80,7 @@ userSchema.methods.generateAccessToken = function() {
         {
             _id: this._id,
             email: this.email,
-            fullName: this.fullName,
+            fullName: this.userName,
             isAdmin: this.isAdmin
         },
         process.env.ACCESS_TOKEN_SECRET,

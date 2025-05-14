@@ -57,7 +57,7 @@ export const sendOTPEmail = async (email, otp, name) => {
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
                     <h2 style="color: #333;">Hello ${name || 'there'}!</h2>
-                    <p>Thank you for signing up. To complete your registration, please enter the following verification code:</p>
+                    <p>Thank you for signing up at the Kgpian Game Theory Society! To complete your registration, please enter the following verification code:</p>
                     <div style="background-color: #f4f4f4; padding: 10px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
                         ${otp}
                     </div>
@@ -98,16 +98,16 @@ export const sendWelcomeEmail = async (email, name) => {
         const transporter = await createTransporter();
         
         const mailOptions = {
-            from: `"Your Organization" <${process.env.EMAIL_USER}>`,
+            from: `"The Kgpian Game Theory Society" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: 'Welcome to Our Platform!',
+            subject: 'Welcome to the Kgpian Game Theory Society!',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
                     <h2 style="color: #333;">Welcome, ${name || 'there'}!</h2>
                     <p>Thank you for joining our platform. We're excited to have you as part of our community!</p>
-                    <p>You can now explore various events and blogs on our platform.</p>
+                    <p>You can now explore various events, blogs and Games on our platform.</p>
                     <p>If you have any questions or need assistance, feel free to contact our support team.</p>
-                    <p>Best regards,<br>Your Organization Team</p>
+                    <p>Best regards,<br>KGTS Team</p>
                 </div>
             `,
             // Add text version for better deliverability
