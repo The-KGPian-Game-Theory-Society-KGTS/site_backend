@@ -7,7 +7,7 @@ const router = Router();
 // Public routes
 /**
  * @route GET /api/blogs
- * @description Get all blogs with optional category filter
+ * @description Get all blogs
  * @access Public
  */
 router.get("/", blogController.getAllBlogs);

@@ -7,10 +7,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
  * Create a new blog (Admin only)
  */
 const createBlog = asyncHandler(async (req, res) => {
-    const { title, author, image, date, words, excerpt, content, category, externalLink } = req.body;
+    const { title, author, image, date, excerpt, externalLink } = req.body;
     
     // Validate required fields
-    if (!title || !image || !date || !excerpt || !content || !category || !externalLink) {
+    if (!title || !image || !date || !excerpt || !externalLink) {
         throw new ApiError(400, "All required fields must be provided");
     }
     
@@ -32,10 +32,7 @@ const createBlog = asyncHandler(async (req, res) => {
         author,
         image,
         date,
-        words: words || content.split(/\s+/).length,
         excerpt,
-        content,
-        category,
         externalLink
     });
     
@@ -53,7 +50,7 @@ const createBlog = asyncHandler(async (req, res) => {
  */
 const updateBlog = asyncHandler(async (req, res) => {
     const blogId = req.params.id;
-    const { title, author, image, date, words, excerpt, content, category, externalLink } = req.body;
+    const { title, author, image, date, excerpt, externalLink } = req.body;
     
     // Validate blog ID
     if (!blogId) {
@@ -81,12 +78,7 @@ const updateBlog = asyncHandler(async (req, res) => {
             throw new ApiError(409, "Blog with this external link already exists");
         }
     }
-    
-    // Calculate words if content is updated but words is not provided
-    let wordCount = words;
-    if (content && !words) {
-        wordCount = content.split(/\s+/).length;
-    }
+
     
     // Update blog
     const updatedBlog = await Blog.findByIdAndUpdate(
@@ -96,10 +88,7 @@ const updateBlog = asyncHandler(async (req, res) => {
             author: author || blog.author,
             image: image || blog.image,
             date: date || blog.date,
-            words: wordCount || blog.words,
             excerpt: excerpt || blog.excerpt,
-            content: content || blog.content,
-            category: category || blog.category,
             externalLink: externalLink || blog.externalLink
         },
         { new: true, runValidators: true }
@@ -142,30 +131,38 @@ const deleteBlog = asyncHandler(async (req, res) => {
 });
 
 /**
- * Get all blogs with optional category filter
+ * Get all blogs
  */
 const getAllBlogs = asyncHandler(async (req, res) => {
-    const { category } = req.query;
-    
-    // Build query
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     const query = {};
-    if (category) {
-        query.category = category;
-    }
-    
-    // Get blogs with limited content
-    const blogs = await Blog.find(query)
-        .select("title author image date words excerpt category externalLink createdAt updatedAt")
-        .sort({ createdAt: -1 });
-    
+
+    const [blogs, total] = await Promise.all([
+        Blog.find(query)
+            .select("title author image date excerpt externalLink createdAt updatedAt")
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit),
+        Blog.countDocuments(query)
+    ]);
+
     return res.status(200).json(
         new ApiResponse(
             200,
-            { blogs },
+            {
+                blogs,
+                total,
+                page,
+                totalPages: Math.ceil(total / limit)
+            },
             "Blogs fetched successfully"
         )
     );
 });
+
 
 /**
  * Get a single blog by ID
