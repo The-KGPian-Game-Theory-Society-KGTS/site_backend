@@ -241,18 +241,20 @@ const loginUser = asyncHandler(async (req, res) => {
     }
     
     // Find user
-    const userByEmail = await User.findOne({ email });
-    
-    if (!userByEmail) {
+    let user;
+
+    if (email) {
+        user = await User.findOne({ email: email.trim().toLowerCase() });
+    }
+
+    if (!user && userName) {
+        user = await User.findOne({ userName });
+    }
+
+    if (!user) {
         throw new ApiError(404, "User not found");
     }
 
-    const userByUsername = await User.findOne({ userName });
-    if (!userByUsername) {
-        throw new ApiError(404, "User not found");
-    }
-    
-    const user = userByEmail || userByUsername;
     
     // Check if email is verified
     if (!user.emailVerified) {
