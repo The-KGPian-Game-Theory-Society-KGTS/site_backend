@@ -21,4 +21,12 @@ router.get("/profile", userController.getUserProfile);
  */
 router.put("/profile", userController.updateUserProfile);
 
+/**
+ * @route PUT /api/users/profile
+ * @description Update user profile
+ * @access Private
+ */
+router.get("/", userController.getAllUsers);
+
+
 export default router; 

@@ -64,8 +64,45 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     );
 });
 
+/**
+ * Get all users with pagination (Admin only)
+ */
+const getAllUsers = asyncHandler(async (req, res) => {
+    // Check if the user is an admin
+    if (!req.user?.isAdmin) {
+        throw new ApiError(403, "Access denied. Admins only.");
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await Promise.all([
+        User.find()
+            .select("-password -refreshToken")
+            .skip(skip)
+            .limit(limit),
+        User.countDocuments()
+    ]);
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                users,
+                total,
+                page,
+                totalPages: Math.ceil(total / limit)
+            },
+            "Users fetched successfully"
+        )
+    );
+});
+
+
 // Default export for all functions
 export default {
     getUserProfile,
-    updateUserProfile
+    updateUserProfile,
+    getAllUsers
 };
