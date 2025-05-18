@@ -48,7 +48,7 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
  * Verify user has admin role
  */
 const isAdmin = asyncHandler(async (req, res, next) => {
-    if (!req.user?.isAdmin) {
+    if (!(req.user?.isAdmin === true || req.user?.role === 'admin')) {
         throw new ApiError(403, "Admin access required");
     }
     next();
