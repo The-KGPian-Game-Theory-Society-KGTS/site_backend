@@ -12,6 +12,13 @@ const router = Router();
  */
 router.get("/", eventController.getAllEvents);
 
+/**
+ * @route GET /api/events/:id
+ * @description Get a single event by ID
+ * @access Public
+ */
+router.get("/:id", eventController.getEventById);
+
 // Authenticated routes
 /**
  * @route GET /api/events/user/registered
@@ -21,20 +28,27 @@ router.get("/", eventController.getAllEvents);
 router.get("/user/registered", authMiddleware.verifyJWT, eventController.getUserRegisteredEvents);
 
 /**
- * @route GET /api/events/:id
- * @description Get a single event by ID
- * @access Public
- */
-router.get("/:id", eventController.getEventById);
-
-/**
  * @route POST /api/events/:id/register
- * @description Register for an event
+ * @description Register for an event (solo)
  * @access Private
  */
 router.post("/:id/register", authMiddleware.verifyJWT, eventController.registerForEvent);
 
+/**
+ * @route DELETE /api/events/:id/unregister
+ * @description Unregister from an event (solo)
+ * @access Private
+ */
+router.delete("/:id/unregister", authMiddleware.verifyJWT, eventController.unregisterFromEvent);
+
 // Admin routes
+/**
+ * @route GET /api/events/:id/participants
+ * @description Get event participants (Admin only)
+ * @access Admin
+ */
+router.get("/:id/participants", authMiddleware.verifyJWT, authMiddleware.isAdmin, eventController.getEventParticipants);
+
 /**
  * @route POST /api/events
  * @description Create a new event
@@ -56,4 +70,4 @@ router.put("/:id", authMiddleware.verifyJWT, authMiddleware.isAdmin, eventContro
  */
 router.delete("/:id", authMiddleware.verifyJWT, authMiddleware.isAdmin, eventController.deleteEvent);
 
-export default router; 
+export default router;
