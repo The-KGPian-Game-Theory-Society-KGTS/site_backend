@@ -1,21 +1,19 @@
+// controllers/auth.controller.js
 import { User } from "../models/user.models.js";
 import { OTP } from "../models/otp.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { generateOTP, sendOTPEmail, sendWelcomeEmail } from "../utils/emailService.js";
+import { generateOTP, sendOTPEmail, sendWelcomeEmail, sendResetPasswordOTPEmail,sendKGPOTPEmail } from "../utils/emailService.js";
 
 /**
  * Generate access and refresh tokens
- * @param {Object} user - User document
- * @returns {Object} - Object containing tokens
  */
 const generateTokens = async (user) => {
     try {
         const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
         
-        // Save refresh token to user document
         user.refreshToken = refreshToken;
         await user.save({ validateBeforeSave: false });
         
@@ -26,51 +24,52 @@ const generateTokens = async (user) => {
 };
 
 /**
- * Register a new user
+ * Register a new user (removed rollNumber)
  */
 const registerUser = asyncHandler(async (req, res) => {
-    // Get user details from request
-    const { userName, email, fullName, password, phoneNumber, collegeName, rollNumber, kgpMail } = req.body;
+    const { userName, email, fullName, password, phoneNumber, collegeName, kgpMail } = req.body;
     
-    // Validate required fields
     if (!userName || !email || !fullName || !password) {
         throw new ApiError(400, "Username, Email, fullName, and password are required");
     }
     
-    // Check if user already exists
     const existingUserByEmail = await User.findOne({ email });
     if (existingUserByEmail) {
         throw new ApiError(409, "User with this email already exists");
     }
+    
     const existingUserByUsername = await User.findOne({ userName });
     if (existingUserByUsername) {
         throw new ApiError(409, "User with this username already exists");
     }
     
-    // Create a new user
+    // Create user without verification for phone/kgpMail
     const user = await User.create({
         userName,
         email,
         fullName,
         password,
-        phoneNumber,
         collegeName,
-        rollNumber,
-        kgpMail
+        // Only store if provided, but not verified yet
+        // ...(phoneNumber && { phoneNumber, phoneVerified: false }),
+        ...(kgpMail && { kgpMail, kgpMailVerified: false })
     });
     
-    // Generate and save OTP
+    // Generate and save OTP for email verification
     const otp = generateOTP();
-    await OTP.create({ email, otp });
+    await OTP.create({ 
+        identifier: email, 
+        otp, 
+        type: 'email_verification',
+        userId: user._id
+    });
     
-    // Send OTP email
     const emailSent = await sendOTPEmail(email, otp, fullName);
     
     if (!emailSent) {
         throw new ApiError(500, "Failed to send verification email");
     }
     
-    // Return response without sensitive information
     const createdUser = await User.findById(user._id).select("-password -refreshToken");
     
     return res.status(201).json(
@@ -86,65 +85,26 @@ const registerUser = asyncHandler(async (req, res) => {
  * Verify email with OTP
  */
 const verifyEmail = asyncHandler(async (req, res) => {
-    // Debug request information
-    console.log("VERIFY EMAIL REQUEST:");
-    console.log("Headers:", JSON.stringify(req.headers));
-    console.log("Body:", JSON.stringify(req.body));
-    console.log("Content-Type:", req.headers['content-type']);
-    console.log("Raw Body:", req.rawBody || "Not available");
+    const { email, otp } = req.body;
     
-    // Get email and OTP from request - try multiple possible sources
-    let email, otp;
-    
-    // Case 1: Normal JSON body
-    if (req.body && typeof req.body === 'object') {
-        email = req.body.email;
-        otp = req.body.otp;
-    }
-    
-    // Case 2: Try to parse rawBody if it exists and we don't have email/otp yet
-    if ((!email || !otp) && req.rawBody) {
-        try {
-            // Check if rawBody is JSON
-            if (typeof req.rawBody === 'string' && 
-                (req.rawBody.trim().startsWith('{') || req.rawBody.trim().startsWith('['))) {
-                const parsedBody = JSON.parse(req.rawBody);
-                email = email || parsedBody.email;
-                otp = otp || parsedBody.otp;
-            }
-        } catch (error) {
-            console.error("Failed to parse raw body:", error);
-        }
-    }
-    
-    // Case 3: URL encoded form data
-    if ((!email || !otp) && req.body) {
-        email = email || req.body.email;
-        otp = otp || req.body.otp;
-    }
-    
-    console.log("Final extracted email:", email);
-    console.log("Final extracted otp:", otp);
-    
-    // Validate required fields
     if (!email || !otp) {
         throw new ApiError(400, "Email and OTP are required");
     }
     
-    // Find the OTP document
-    const otpRecord = await OTP.findOne({ email });
+    const otpRecord = await OTP.findOne({ 
+        identifier: email, 
+        type: 'email_verification' 
+    });
     
     if (!otpRecord) {
         throw new ApiError(400, "OTP expired or not found");
     }
     
-    // Verify OTP
     const isValid = await otpRecord.verifyOTP(otp);
     if (!isValid) {
         throw new ApiError(400, "Invalid OTP");
     }
     
-    // Update user as verified
     const user = await User.findOneAndUpdate(
         { email },
         { emailVerified: true },
@@ -155,18 +115,14 @@ const verifyEmail = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found");
     }
     
-    // Delete the OTP document
     await OTP.findByIdAndDelete(otpRecord._id);
     
-    // Send welcome email
     sendWelcomeEmail(email, user.fullName).catch(error => {
         console.error("Error sending welcome email:", error);
     });
     
-    // Generate tokens
     const { accessToken, refreshToken } = await generateTokens(user);
     
-    // Set cookies
     const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production"
@@ -195,26 +151,26 @@ const resendOTP = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Email is required");
     }
     
-    // Check if user exists
     const user = await User.findOne({ email });
     
     if (!user) {
         throw new ApiError(404, "User not found");
     }
     
-    // If user is already verified, return error
     if (user.emailVerified) {
         throw new ApiError(400, "Email is already verified");
     }
     
-    // Delete any existing OTP
-    await OTP.deleteMany({ email });
+    await OTP.deleteMany({ identifier: email, type: 'email_verification' });
     
-    // Generate and save new OTP
     const otp = generateOTP();
-    await OTP.create({ email, otp });
+    await OTP.create({ 
+        identifier: email, 
+        otp, 
+        type: 'email_verification',
+        userId: user._id
+    });
     
-    // Send OTP email
     const emailSent = await sendOTPEmail(email, otp, user.fullName);
     
     if (!emailSent) {
@@ -237,10 +193,9 @@ const loginUser = asyncHandler(async (req, res) => {
     const { userName, email, password } = req.body;
     
     if ((!userName && !email) || !password) {
-        throw new ApiError(400, "Email and password are required");
+        throw new ApiError(400, "Email/Username and password are required");
     }
     
-    // Find user
     let user;
 
     if (email) {
@@ -254,35 +209,32 @@ const loginUser = asyncHandler(async (req, res) => {
     if (!user) {
         throw new ApiError(404, "User not found");
     }
-
     
-    // Check if email is verified
     if (!user.emailVerified) {
-        // Generate new OTP
         const otp = generateOTP();
-        await OTP.findOneAndDelete({ email });
-        await OTP.create({ email, otp });
+        await OTP.findOneAndDelete({ identifier: user.email, type: 'email_verification' });
+        await OTP.create({ 
+            identifier: user.email, 
+            otp, 
+            type: 'email_verification',
+            userId: user._id
+        });
         
-        // Send OTP
-        await sendOTPEmail(email, otp, user.fullName);
+        await sendOTPEmail(user.email, otp, user.fullName);
         
         throw new ApiError(403, "Email not verified. New verification OTP has been sent.");
     }
     
-    // Check if password is correct
     const isPasswordValid = await user.isPasswordCorrect(password);
     
     if (!isPasswordValid) {
         throw new ApiError(401, "Invalid credentials");
     }
     
-    // Generate tokens
     const { accessToken, refreshToken } = await generateTokens(user);
     
-    // Get user without sensitive information
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
     
-    // Set cookies
     const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production"
@@ -302,17 +254,302 @@ const loginUser = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Forgot password - Send OTP to email
+ */
+const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    
+    if (!email) {
+        throw new ApiError(400, "Email is required");
+    }
+    
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    
+    if (!user) {
+        throw new ApiError(404, "User with this email does not exist");
+    }
+    
+    // Delete any existing password reset OTPs
+    await OTP.deleteMany({ identifier: email, type: 'password_reset' });
+    
+    const otp = generateOTP();
+    await OTP.create({ 
+        identifier: email, 
+        otp, 
+        type: 'password_reset',
+        userId: user._id
+    });
+    
+    const emailSent = await sendResetPasswordOTPEmail(email, otp);
+    
+    if (!emailSent) {
+        throw new ApiError(500, "Failed to send password reset email");
+    }
+    
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {},
+            "Password reset OTP sent to your email"
+        )
+    );
+});
+
+/**
+ * Reset password with OTP
+ */
+const resetPassword = asyncHandler(async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+    
+    if (!email || !otp || !newPassword) {
+        throw new ApiError(400, "Email, OTP, and new password are required");
+    }
+    
+    if (newPassword.length < 6) {
+        throw new ApiError(400, "Password must be at least 6 characters long");
+    }
+    
+    const otpRecord = await OTP.findOne({ 
+        identifier: email, 
+        type: 'password_reset' 
+    });
+    
+    if (!otpRecord) {
+        throw new ApiError(400, "OTP expired or not found");
+    }
+    
+    const isValid = await otpRecord.verifyOTP(otp);
+    if (!isValid) {
+        throw new ApiError(400, "Invalid OTP");
+    }
+    
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+    
+    user.password = newPassword;
+    await user.save();
+    
+    await OTP.findByIdAndDelete(otpRecord._id);
+    
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {},
+            "Password reset successfully"
+        )
+    );
+});
+
+/**
+ * Send phone verification OTP
+ */
+// const sendPhoneVerificationOTP = asyncHandler(async (req, res) => {
+//     const { phoneNumber } = req.body;
+//     const userId = req.user._id;
+    
+//     if (!phoneNumber) {
+//         throw new ApiError(400, "Phone number is required");
+//     }
+    
+//     // Validate phone number format
+//     if (!/^[0-9]{10}$/.test(phoneNumber)) {
+//         throw new ApiError(400, "Please enter a valid 10-digit phone number");
+//     }
+    
+//     // Check if phone number is already verified by another user
+//     const existingUser = await User.findOne({ 
+//         phoneNumber, 
+//         phoneVerified: true,
+//         _id: { $ne: userId }
+//     });
+    
+//     if (existingUser) {
+//         throw new ApiError(409, "This phone number is already verified by another user");
+//     }
+    
+//     // Delete any existing phone verification OTPs
+//     await OTP.deleteMany({ identifier: phoneNumber, type: 'phone_verification' });
+    
+//     const otp = generateOTP();
+//     await OTP.create({ 
+//         identifier: phoneNumber, 
+//         otp, 
+//         type: 'phone_verification',
+//         userId: userId
+//     });
+    
+//     const smsSent = await sendPhoneOTP(phoneNumber, otp, req.user.fullName);
+    
+//     if (!smsSent) {
+//         throw new ApiError(500, "Failed to send SMS OTP");
+//     }
+    
+//     return res.status(200).json(
+//         new ApiResponse(
+//             200,
+//             {},
+//             "Phone verification OTP sent successfully. Check console for development OTP."
+//         )
+//     );
+// });
+
+/**
+ * Verify phone number with OTP
+ */
+// const verifyPhoneNumber = asyncHandler(async (req, res) => {
+//     const { phoneNumber, otp } = req.body;
+//     const userId = req.user._id;
+    
+//     if (!phoneNumber || !otp) {
+//         throw new ApiError(400, "Phone number and OTP are required");
+//     }
+    
+//     const otpRecord = await OTP.findOne({ 
+//         identifier: phoneNumber, 
+//         type: 'phone_verification',
+//         userId: userId
+//     });
+    
+//     if (!otpRecord) {
+//         throw new ApiError(400, "OTP expired or not found");
+//     }
+    
+//     const isValid = await otpRecord.verifyOTP(otp);
+//     if (!isValid) {
+//         throw new ApiError(400, "Invalid OTP");
+//     }
+    
+//     const user = await User.findByIdAndUpdate(
+//         userId,
+//         { 
+//             phoneNumber,
+//             phoneVerified: true 
+//         },
+//         { new: true }
+//     ).select("-password -refreshToken");
+    
+//     await OTP.findByIdAndDelete(otpRecord._id);
+    
+//     return res.status(200).json(
+//         new ApiResponse(
+//             200,
+//             { user },
+//             "Phone number verified successfully"
+//         )
+//     );
+// });
+
+/**
+ * Send KGP mail verification OTP
+ */
+const sendKgpMailVerificationOTP = asyncHandler(async (req, res) => {
+    const { kgpMail } = req.body;
+    const userId = req.user._id;
+    
+    if (!kgpMail) {
+        throw new ApiError(400, "Institute email is required");
+    }
+    
+    // Validate KGP mail format
+    if (!/^[a-zA-Z0-9._%+-]+@kgpian\.iitkgp\.ac\.in$/.test(kgpMail)) {
+        throw new ApiError(400, "Please enter a valid IIT Kgp institute email ID");
+    }
+    
+    // Check if KGP mail is already verified by another user
+    const existingUser = await User.findOne({ 
+        kgpMail, 
+        kgpMailVerified: true,
+        _id: { $ne: userId }
+    });
+    
+    if (existingUser) {
+        throw new ApiError(409, "This institute email is already verified by another user");
+    }
+    
+    // Delete any existing KGP mail verification OTPs
+    await OTP.deleteMany({ identifier: kgpMail, type: 'kgp_mail_verification' });
+    
+    const otp = generateOTP();
+    await OTP.create({ 
+        identifier: kgpMail, 
+        otp, 
+        type: 'kgp_mail_verification',
+        userId: userId
+    });
+    
+    const emailSent = await sendKGPOTPEmail(kgpMail, otp, req.user.fullName);
+    
+    if (!emailSent) {
+        throw new ApiError(500, "Failed to send institute email verification");
+    }
+    
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {},
+            "Institute email verification OTP sent successfully"
+        )
+    );
+});
+
+/**
+ * Verify KGP mail with OTP
+ */
+const verifyKgpMail = asyncHandler(async (req, res) => {
+    const { kgpMail, otp } = req.body;
+    const userId = req.user._id;
+    
+    if (!kgpMail || !otp) {
+        throw new ApiError(400, "Institute email and OTP are required");
+    }
+    
+    const otpRecord = await OTP.findOne({ 
+        identifier: kgpMail, 
+        type: 'kgp_mail_verification',
+        userId: userId
+    });
+    
+    if (!otpRecord) {
+        throw new ApiError(400, "OTP expired or not found");
+    }
+    
+    const isValid = await otpRecord.verifyOTP(otp);
+    if (!isValid) {
+        throw new ApiError(400, "Invalid OTP");
+    }
+    
+    const user = await User.findByIdAndUpdate(
+        userId,
+        { 
+            kgpMail,
+            kgpMailVerified: true 
+        },
+        { new: true }
+    ).select("-password -refreshToken");
+    
+    await OTP.findByIdAndDelete(otpRecord._id);
+    
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { user },
+            "Institute email verified successfully"
+        )
+    );
+});
+
+/**
  * Logout user
  */
 const logoutUser = asyncHandler(async (req, res) => {
-    // Clear refresh token in database
     await User.findByIdAndUpdate(
         req.user._id,
         { $unset: { refreshToken: 1 } },
         { new: true }
     );
     
-    // Clear cookies
     const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production"
@@ -331,11 +568,16 @@ const logoutUser = asyncHandler(async (req, res) => {
         );
 });
 
-// Default export
 export default {
     registerUser,
     verifyEmail,
     resendOTP,
     loginUser,
+    forgotPassword,
+    resetPassword,
+    // sendPhoneVerificationOTP,
+    // verifyPhoneNumber,
+    sendKgpMailVerificationOTP,
+    verifyKgpMail,
     logoutUser
 };

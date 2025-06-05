@@ -1,17 +1,27 @@
+// models/otp.models.js
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
 const otpSchema = new mongoose.Schema({
-    email: {
+    identifier: { // email for both email verification and password reset
         type: String,
         required: true,
         lowercase: true,
         trim: true,
-        match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address']
     },
     otp: {
         type: String,
-        required: true
+        required: true,
+    },
+    type: {
+        type: String,
+        enum: ['email_verification', 'password_reset', 'kgp_mail_verification'],
+        required: true,
+        default: 'email_verification'
+    },
+    userId: { // Optional: link to user for additional security
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     },
     createdAt: {
         type: Date,
@@ -33,4 +43,7 @@ otpSchema.methods.verifyOTP = async function(otp) {
     return await bcrypt.compare(otp, this.otp);
 };
 
-export const OTP = mongoose.model("OTP", otpSchema); 
+// Compound index for better performance
+otpSchema.index({ identifier: 1, type: 1 });
+
+export const OTP = mongoose.model("OTP", otpSchema);

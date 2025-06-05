@@ -1,3 +1,4 @@
+// models/user.models.js
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -27,12 +28,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Password is Required'],
     },
-    registeredEvents: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Event"
-        }
-    ],
+    registeredEvents: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Event"
+    }],
     isAdmin: {
         type: Boolean,
         default: false,
@@ -44,13 +43,13 @@ const userSchema = new mongoose.Schema({
     collegeName: {
         type: String,
     },
-    rollNumber: {
-        type: String,
-        match: [/^2\d[A-Z]{2}[A-Z0-9]{5}$/, "Please enter a valid IIT Kgp Roll Number"]
-    },
     kgpMail: {
         type: String,
         match: [/^[a-zA-Z0-9._%+-]+@kgpian\.iitkgp\.ac\.in$/, "Please enter a valid IIT Kgp institute email ID"]
+    },
+    kgpMailVerified: {
+        type: Boolean,
+        default: false
     },
     refreshToken: {
         type: String

@@ -1,3 +1,4 @@
+// controllers/user.controller.js
 import { User } from "../models/user.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -7,9 +8,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
  * Get user profile
  */
 const getUserProfile = asyncHandler(async (req, res) => {
-    const userId = req.user._id;
-    
-    const user = await User.findById(userId).select("-password -refreshToken");
+    const user = await User.findById(req.user._id).select("-password -refreshToken");
     
     if (!user) {
         throw new ApiError(404, "User not found");
@@ -25,30 +24,93 @@ const getUserProfile = asyncHandler(async (req, res) => {
 });
 
 /**
- * Update user profile
- * Note: Email, fullName, and password cannot be updated
+ * Update user profile (Fixed and secure)
  */
 const updateUserProfile = asyncHandler(async (req, res) => {
-    const userId = req.user._id;
-    const { phoneNumber, collegeName, rollNumber, kgpMail } = req.body;
+    const { userName, fullName, collegeName, phoneNumber } = req.body;
     
-    // Check if user is trying to update protected fields
-    if (req.body.email || req.body.fullName || req.body.password) {
-        throw new ApiError(400, "Email, fullName, and password cannot be updated");
+    // Prevent updating protected fields
+    const protectedFields = [
+        'email', 'password', 'emailVerified',  
+        'kgpMail', 'kgpMailVerified', 'isAdmin', 'refreshToken', 'riddlePoints'
+    ];
+    
+    const attemptedProtectedUpdates = Object.keys(req.body).filter(key => 
+        protectedFields.includes(key)
+    );
+    
+    if (attemptedProtectedUpdates.length > 0) {
+        throw new ApiError(400, 
+            `Cannot update protected fields: ${attemptedProtectedUpdates.join(', ')}. Use specific verification endpoints for phone/email updates.`
+        );
     }
     
-    // Build update object with only allowed fields
+    // Build update object with validation
     const updateData = {};
-    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
-    if (collegeName !== undefined) updateData.collegeName = collegeName;
-    if (rollNumber !== undefined) updateData.rollNumber = rollNumber;
-    if (kgpMail !== undefined) updateData.kgpMail = kgpMail;
+    
+    if (userName !== undefined) {
+        const trimmedUsername = userName.trim().toLowerCase();
+        
+        if (trimmedUsername.length < 3) {
+            throw new ApiError(400, "Username must be at least 3 characters long");
+        }
+        
+        if (trimmedUsername.length > 20) {
+            throw new ApiError(400, "Username cannot exceed 20 characters");
+        }
+        
+        // Check username uniqueness
+        const existingUser = await User.findOne({ 
+            userName: trimmedUsername,
+            _id: { $ne: req.user._id }
+        });
+        
+        if (existingUser) {
+            throw new ApiError(409, "Username is already taken");
+        }
+        
+        updateData.userName = trimmedUsername;
+    }
+    
+    if (fullName !== undefined) {
+        const trimmedFullName = fullName.trim();
+        
+        if (trimmedFullName.length < 2) {
+            throw new ApiError(400, "Full name must be at least 2 characters long");
+        }
+        
+        if (trimmedFullName.length > 50) {
+            throw new ApiError(400, "Full name cannot exceed 50 characters");
+        }
+        
+        updateData.fullName = trimmedFullName;
+    }
+    
+    if (collegeName !== undefined) {
+        const trimmedCollegeName = collegeName.trim();
+        
+        if (trimmedCollegeName.length > 100) {
+            throw new ApiError(400, "College name cannot exceed 100 characters");
+        }
+        
+        updateData.collegeName = trimmedCollegeName;
+    }
+
+    updateData.phoneNumber = phoneNumber ? phoneNumber.trim() : undefined;
+    
+    // Check if there's anything to update
+    if (Object.keys(updateData).length === 0) {
+        throw new ApiError(400, "No valid fields provided for update");
+    }
     
     // Update user
     const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        updateData,
-        { new: true, runValidators: true }
+        req.user._id,
+        { $set: updateData },
+        { 
+            new: true, 
+            runValidators: true 
+        }
     ).select("-password -refreshToken");
     
     if (!updatedUser) {
@@ -59,7 +121,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         new ApiResponse(
             200,
             { user: updatedUser },
-            "User profile updated successfully"
+            "Profile updated successfully"
         )
     );
 });
@@ -68,7 +130,6 @@ const updateUserProfile = asyncHandler(async (req, res) => {
  * Get all users with pagination (Admin only)
  */
 const getAllUsers = asyncHandler(async (req, res) => {
-    // Check if the user is an admin
     if (!req.user?.isAdmin) {
         throw new ApiError(403, "Access denied. Admins only.");
     }
@@ -76,13 +137,41 @@ const getAllUsers = asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    
+    // Build filter object
+    const filter = {};
+    
+    // Add search functionality
+    if (req.query.search) {
+        const searchRegex = new RegExp(req.query.search, 'i');
+        filter.$or = [
+            { userName: searchRegex },
+            { fullName: searchRegex },
+            { email: searchRegex },
+            { collegeName: searchRegex }
+        ];
+    }
+    
+    // Filter by verification status
+    if (req.query.emailVerified !== undefined) {
+        filter.emailVerified = req.query.emailVerified === 'true';
+    }
+    
+    // if (req.query.phoneVerified !== undefined) {
+    //     filter.phoneVerified = req.query.phoneVerified === 'true';
+    // }
+    
+    if (req.query.kgpMailVerified !== undefined) {
+        filter.kgpMailVerified = req.query.kgpMailVerified === 'true';
+    }
 
     const [users, total] = await Promise.all([
-        User.find()
+        User.find(filter)
             .select("-password -refreshToken")
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit),
-        User.countDocuments()
+        User.countDocuments(filter)
     ]);
 
     return res.status(200).json(
@@ -92,15 +181,15 @@ const getAllUsers = asyncHandler(async (req, res) => {
                 users,
                 total,
                 page,
-                totalPages: Math.ceil(total / limit)
+                totalPages: Math.ceil(total / limit),
+                hasNextPage: page < Math.ceil(total / limit),
+                hasPrevPage: page > 1
             },
             "Users fetched successfully"
         )
     );
 });
 
-
-// Default export for all functions
 export default {
     getUserProfile,
     updateUserProfile,
