@@ -51,13 +51,13 @@ export const sendOTPEmail = async (email, otp, name) => {
         console.log(`Using email configuration: ${process.env.EMAIL_USER}, SMTP: smtp.gmail.com`);
         
         const mailOptions = {
-            from: `"Account Verification" <${process.env.EMAIL_USER}>`,
+            from: `"The KGPian Game Theory Society" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: 'Your Verification Code',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
                     <h2 style="color: #333;">Hello ${name || 'there'}!</h2>
-                    <p>Thank you for signing up at the Kgpian Game Theory Society! To complete your registration, please enter the following verification code:</p>
+                    <p>Thank you for signing up at the KGPian Game Theory Society! To complete your registration, please enter the following verification code:</p>
                     <div style="background-color: #f4f4f4; padding: 10px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
                         ${otp}
                     </div>
@@ -98,15 +98,15 @@ export const sendWelcomeEmail = async (email, name) => {
         const transporter = await createTransporter();
         
         const mailOptions = {
-            from: `"The Kgpian Game Theory Society" <${process.env.EMAIL_USER}>`,
+            from: `"The KGPian Game Theory Society" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: 'Welcome to the Kgpian Game Theory Society!',
+            subject: 'Welcome to the KGPian Game Theory Society!',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
                     <h2 style="color: #333;">Welcome, ${name || 'there'}!</h2>
                     <p>Thank you for joining our platform. We're excited to have you as part of our community!</p>
-                    <p>You can now explore various events, blogs and Games on our platform.</p>
-                    <p>If you have any questions or need assistance, feel free to contact our support team.</p>
+                    <p>You can now explore various Games and Riddles on our platform.</p>
+                    <p>If you have any questions or need assistance, feel free to contact us.</p>
                     <p>Best regards,<br>KGTS Team</p>
                 </div>
             `,
@@ -140,9 +140,9 @@ export const sendResetPasswordOTPEmail = async (email, otp) => {
         console.log(`Using email configuration: ${process.env.EMAIL_USER}, SMTP: smtp.gmail.com`);
         
         const mailOptions = {
-            from: `"Reset Password" <${process.env.EMAIL_USER}>`,
+            from: `"The KGPian Game Theory Society" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: 'Your Verification Code',
+            subject: 'Your Verification Code for Password Reset',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
                 
@@ -191,13 +191,13 @@ export const sendKGPOTPEmail = async (email, otp, name) => {
         console.log(`Using email configuration: ${process.env.EMAIL_USER}, SMTP: smtp.gmail.com`);
         
         const mailOptions = {
-            from: `"Institute Email Verification" <${process.env.EMAIL_USER}>`,
+            from: `"The KGPian Game Theory Society" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: 'Your Verification Code',
+            subject: 'Institute Email Verification Code',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
                     <h2 style="color: #333;">Hello ${name || 'there'}!</h2>
-                    <p>Thank you for signing up at the Kgpian Game Theory Society! To verify your institute ID, please enter the following verification code:</p>
+                    <p>Thank you for signing up at the KGPian Game Theory Society! To verify your institute ID, please enter the following verification code:</p>
                     <div style="background-color: #f4f4f4; padding: 10px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
                         ${otp}
                     </div>
